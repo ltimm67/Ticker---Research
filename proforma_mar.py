@@ -12,12 +12,12 @@ import sys
 
 BASE_ASSUMPTIONS = {
     # Operating Assumptions
-    "organic_revenue_growth": 0.045,  # 4.5% a year [guidance / judgment]
-    "gross_margin": 0.214428,  # 21.44% net operating fee margin on total revenue [history]
+    "organic_revenue_growth": 0.047,  # Base net room growth, 4.7% a year [FY2025 10-K / judgment]
+    "gross_margin": 0.48,  # Franchise-fee operating margin [judgment]
     "sga_ratios": [0.154942, 0.152500, 0.150000, 0.150000, 0.150000],  # SG&A / Gross Profit [judgment]
     "depreciation_ratio": 604.0 / (1954.0 + 21981.0),  # FY2025 D&A / opening (PP&E + intangibles) [history]
     "impairment_annual": 0.0,  # Impairments included in baseline amortization [history]
-    "capex_annual": 600.0,  # Capital and technology expenditures, USD millions a year [guidance]
+    "capex_annual": 250.0,  # Asset-light corporate capex, USD millions a year [judgment; below $300M]
     "tax_rate": 0.2203,  # 22.03% effective tax rate [history]
     # Working Capital Assumptions (Franchisor carries zero inventory or floor plan debt)
     "inventory_days": 0.0,  # Stated "None" [history / fact]
@@ -28,8 +28,8 @@ BASE_ASSUMPTIONS = {
     "minimum_cash": 300.0,  # Operating cash reserve floor, USD millions [judgment]
     "revolver_limit": 4500.0,  # Credit facility capacity, USD millions [fact: 2025 Form 10-K Note 11]
     "revolver_rate": 0.060,  # 6.0% short-term credit facility borrowing rate [judgment]
-    "debt_repayment_annual": 300.0,  # Senior notes principal retirement, USD millions a year [judgment]
-    "share_buyback_annual": 2500.0,  # Share repurchases + dividends, USD millions a year [guidance / judgment]
+    "debt_repayment_annual": 0.0,  # No scheduled principal repayment in the base case [judgment]
+    "share_buyback_annual": 500.0,  # Liquidity-limited capital return, USD millions a year [judgment]
     "term_debt_rate": 0.047314,  # Net effective borrowing rate ($767M net interest / $16,211M debt) [history]
     # Valuation Assumptions
     "cost_of_equity": 0.089,  # 8.90% cost of equity from Lab 06 CAPM estimate [judgment]
@@ -40,7 +40,7 @@ BASE_ASSUMPTIONS = {
 # Opening Balance Sheet (FY2025, USD millions)
 # Sourced from 2025 Form 10-K, Item 8 Consolidated Balance Sheets
 OPENING_BS = {
-    "revenue": 26186.0,
+    "revenue": 5050.0,  # FY2025 total fee revenue used as the forecast revenue base
     "cash": 385.0,
     "receivables": 3156.0,
     "inventory": 0.0,
@@ -84,6 +84,8 @@ def run_proforma(params=None, break_test=False):
         sga_ratio = params["sga_ratios"][i]
 
         # 1. Income Statement
+        # Forecast total fee revenue. Reimbursed hotel costs are excluded because they
+        # are pass-through items and do not create operating profit.
         revenue = prior_rev * (1.0 + params["organic_revenue_growth"])
         delta_rev = revenue - prior_rev
         gross_profit = revenue * params["gross_margin"]
@@ -234,8 +236,8 @@ def print_statements(is_data, bs_data, cfs_data, checks):
     print(hdr)
     print("-" * 96)
     rows_is = [
-        ("Total Revenues", [d["revenue"] for d in is_data]),
-        ("Net Operating Fee Margin", [d["gross_profit"] for d in is_data]),
+        ("Total fee revenues", [d["revenue"] for d in is_data]),
+        ("Fee revenue operating profit", [d["gross_profit"] for d in is_data]),
         ("General & Administrative (SG&A)", [d["sga"] for d in is_data]),
         ("Depreciation & Amortization", [d["depreciation"] for d in is_data]),
         ("Operating Income", [d["operating_income"] for d in is_data]),
@@ -362,28 +364,28 @@ def run_sensitivity_analysis():
 
     drivers = [
         {
-            "name": "Organic Revenue Growth",
+            "name": "Net Room Growth",
             "key": "organic_revenue_growth",
             "unit": "% / yr",
             "format": lambda x: f"{x * 100:.1f}%",
             "cases": [
-                ("Lower", 0.025),
-                ("Base", 0.045),
-                ("Higher", 0.065),
+                ("Lower", 0.030),
+                ("Base", 0.047),
+                ("Higher", 0.060),
             ],
-            "reason": "Range of 2.5% to 6.5% reflects recessionary RevPAR contraction vs. luxury travel boom.",
+            "reason": "Range of 3.0% to 6.0% tests lower development delivery versus stronger net room additions.",
         },
         {
-            "name": "Net Operating Fee Margin",
+            "name": "Franchise Fee Margin",
             "key": "gross_margin",
             "unit": "% of rev",
             "format": lambda x: f"{x * 100:.2f}%",
             "cases": [
-                ("Lower", 0.214428 - 0.02),
-                ("Base", 0.214428),
-                ("Higher", 0.214428 + 0.02),
+                ("Lower", 0.45),
+                ("Base", 0.48),
+                ("Higher", 0.51),
             ],
-            "reason": "Symmetric +/-2.0 pp shift (19.44% to 23.44%) reflects franchisee concessions vs. high-margin credit card fees.",
+            "reason": "Range of 45.0% to 51.0% tests franchise-fee yield and operating leverage.",
         },
     ]
 
