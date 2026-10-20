@@ -78,6 +78,17 @@ CANDIDATES = {
         "Acme Corp bonds": 0.0,
         "Acme Corp stock": 0.0,
     },
+    "E": {
+        # Meridian's benchmark: 40% investment-grade bonds / 60% global equity.
+        "Cash": 0.0,
+        "Treasury bills": 0.0,
+        "Treasury 10-year note": 0.0,
+        "Global equity index fund": 60.0,
+        "Investment-grade bond fund": 40.0,
+        "Private real estate fund": 0.0,
+        "Acme Corp bonds": 0.0,
+        "Acme Corp stock": 0.0,
+    },
 }
 
 # ==============================================================================
@@ -158,10 +169,11 @@ def evaluate_candidate(cand_weights, reserve_min):
 
 def main():
     reserve_min = compute_reserve_minimum()
+    candidate_names = list(CANDIDATES)
     print(f"Reserve minimum: {reserve_min:.1f}% of the portfolio.\n")
     
     # Detailed output candidate by candidate
-    for cand_name in ["A", "B", "C", "D"]:
+    for cand_name in candidate_names:
         cand_weights = CANDIDATES[cand_name]
         res = evaluate_candidate(cand_weights, reserve_min)
         
@@ -178,23 +190,28 @@ def main():
     print("=" * 96)
     print("SUMMARY VERIFICATION TABLE (Lab 13 — V & E)")
     print("=" * 96)
-    hdr = f"{'Rule':<30} | {'A':<18} | {'B':<18} | {'C':<18} | {'D':<18}"
+    hdr = " | ".join([f"{'Rule':<30}"] + [f"{name:<18}" for name in candidate_names])
     print(hdr)
     print("-" * 96)
     
-    evals = {k: evaluate_candidate(CANDIDATES[k], reserve_min) for k in ["A", "B", "C", "D"]}
+    evals = {name: evaluate_candidate(CANDIDATES[name], reserve_min) for name in candidate_names}
     
     def fmt_cell(val, status):
         return f"{val:.1f} {'pass' if status else 'FAIL'}"
         
-    print(f"{'Weights sum to 100':<30} | {fmt_cell(evals['A']['total_weight'], evals['A']['sum_pass']):<18} | {fmt_cell(evals['B']['total_weight'], evals['B']['sum_pass']):<18} | {fmt_cell(evals['C']['total_weight'], evals['C']['sum_pass']):<18} | {fmt_cell(evals['D']['total_weight'], evals['D']['sum_pass']):<18}")
-    print(f"{'Long-only (lowest weight)':<30} | {fmt_cell(evals['A']['lowest_weight'], evals['A']['long_pass']):<18} | {fmt_cell(evals['B']['lowest_weight'], evals['B']['long_pass']):<18} | {fmt_cell(evals['C']['lowest_weight'], evals['C']['long_pass']):<18} | {fmt_cell(evals['D']['lowest_weight'], evals['D']['long_pass']):<18}")
-    print(f"{'Reserve >= ' + f'{reserve_min:.1f}%':<30} | {fmt_cell(evals['A']['reserve_weight'], evals['A']['reserve_pass']):<18} | {fmt_cell(evals['B']['reserve_weight'], evals['B']['reserve_pass']):<18} | {fmt_cell(evals['C']['reserve_weight'], evals['C']['reserve_pass']):<18} | {fmt_cell(evals['D']['reserve_weight'], evals['D']['reserve_pass']):<18}")
-    print(f"{'Redeemable in 5 days >= 90%':<30} | {fmt_cell(evals['A']['liquid_weight'], evals['A']['liquid_pass']):<18} | {fmt_cell(evals['B']['liquid_weight'], evals['B']['liquid_pass']):<18} | {fmt_cell(evals['C']['liquid_weight'], evals['C']['liquid_pass']):<18} | {fmt_cell(evals['D']['liquid_weight'], evals['D']['liquid_pass']):<18}")
-    print(f"{'Largest single company <= 8%':<30} | {fmt_cell(evals['A']['largest_company'], evals['A']['issuer_pass']):<18} | {fmt_cell(evals['B']['largest_company'], evals['B']['issuer_pass']):<18} | {fmt_cell(evals['C']['largest_company'], evals['C']['issuer_pass']):<18} | {fmt_cell(evals['D']['largest_company'], evals['D']['issuer_pass']):<18}")
-    print(f"{'Calendar-year loss':<30} | {'requires CIO clarification':<18} | {'same':<18} | {'same':<18} | {'same':<18}")
+    checks = [
+        ("Weights sum to 100", "total_weight", "sum_pass"),
+        ("Long-only (lowest weight)", "lowest_weight", "long_pass"),
+        (f"Reserve >= {reserve_min:.1f}%", "reserve_weight", "reserve_pass"),
+        ("Redeemable in 5 days >= 90%", "liquid_weight", "liquid_pass"),
+        ("Largest single company <= 8%", "largest_company", "issuer_pass"),
+    ]
+    for label, value_key, pass_key in checks:
+        cells = [f"{label:<30}"] + [f"{fmt_cell(evals[name][value_key], evals[name][pass_key]):<18}" for name in candidate_names]
+        print(" | ".join(cells))
+    print(" | ".join([f"{'Calendar-year loss':<30}"] + [f"{'requires CIO clarification' if name == 'A' else 'same':<18}" for name in candidate_names]))
     print("-" * 96)
-    print(f"{'Verdict':<30} | {evals['A']['verdict']:<18} | {evals['B']['verdict']:<18} | {evals['C']['verdict']:<18} | {evals['D']['verdict']:<18}")
+    print(" | ".join([f"{'Verdict':<30}"] + [f"{evals[name]['verdict']:<18}" for name in candidate_names]))
     print("=" * 96)
 
 if __name__ == "__main__":
